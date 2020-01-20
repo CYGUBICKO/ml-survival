@@ -1,0 +1,160 @@
+---
+title: "Random Survival Forest example"
+author: "Thomas Gerlach"
+date: "2018 MAY 22"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Content
+
+This script briefly introduces training and prediction of a random survival forest
+utilizing the package "ranger" on a toy dataset. Beforehand, this toy dataset is
+sliced in n-many folds for n-fold crossvalidation. Finally the prediction performance
+is measured using the concordance index.
+
+
+1. data
+ + set up toy dataset
+ + some descriptive statistics
+ + set up a cross validation schema
+
+2. model, training
+ + define RSF model + parameters
+ + train model on each cross validation subsample
+ + compute predictions on the hold out test set
+
+3. prediction performance
+ + cindex
+ + prediction error curves
+
+
+# setup
+```{r}
+rm(list=ls())
+library(ranger) # RSF 
+library(survival) # contains survival examples, handle survival objects
+library(caret) # for stratified cross validiation
+library(dplyr) # data manipulation
+library(pec) # prediction error curves
+```
+
+track session info
+```{r session info}
+sessionInfo()
+```
+
+
+# 1. data
+
+set up toy dataset
+```{r}
+data <- survival::cancer # NCCTG Lung Cancer Data, 	censoring status 1=censored, 2=dead
+str(data)
+```
+
+preprocessing
+```{r}
+# change label of status variable
+data <- data %>% mutate(status = status-1) # 0 = censored, 1 = dead
+
+# some data contain missing values, for simplification I omit observations with NA's
+data <- na.omit(data)
+
+# scale to months
+data$time <- floor(data$time/30)
+```
+
+
+some descriptive statistics
+```{r fig.height=10, fig.width=10}
+pairs(data %>% select(-time,-status), main = "NCCTG Lung Cancer Data")
+```
+
+set up a cross validation schema
+```{r}
+# cross validation, stratified on status variable to ensure that  each group (here censored, dead)
+# is equally distributed over the cross-validation folds
+
+folds <- 2 # for <nfold> cross-validation
+cvIndex <- createFolds(factor(data$status), folds, returnTrain = T)
+```
+
+
+# 2 model, training
+```{r}
+# create some containers to store results
+# (not reasonable for big models, for big models you may want so store intermediate results on disk)
+container_model <- vector("list",length(cvIndex))
+container_pred <- container_model
+
+# run RSF with default params --------------------------------------------------
+
+# iterate through cv-folds
+for(i in 1:length(cvIndex)) {
+  
+  # define training / test data
+  train_data <- data[cvIndex[[i]],]
+  eval_data <- data[-cvIndex[[i]],]
+  
+  # train
+  rsf <- ranger(Surv(time = time, event = status) ~ ., data = train_data)
+  
+  # predict (on hold out test set)
+  pred <- predict(rsf, eval_data)
+  
+  # store results
+  container_model[[i]] <- rsf
+  container_pred[[i]] <- pred
+}
+
+```
+
+show some model summaries
+```{r}
+container_model
+```
+
+
+# 3. prediction performance
+```{r}
+container_pec <- vector("list",length(cvIndex))
+
+
+for(i in 1:length(cvIndex)) {
+  # define training / test data
+  train_data <- data[cvIndex[[i]], ]
+  eval_data <- data[-cvIndex[[i]], ]
+  
+  # adapt w.r.t. overlaping timepoints
+  times <- intersect(train_data$time,eval_data$time)
+  times_overlap <- which(container_pred[[i]]$unique.death.times %in% times)
+  
+  model <- list("rsf"=container_pred[[i]]$survival[,times_overlap])
+  
+   pec_ <-  pec(
+    object = model,
+    formula = Surv(time = time, event = status) ~ 1, # Kaplan-Meier
+    traindata = train_data,
+    data = eval_data,
+    exact = F,
+    times <- times
+    )
+   
+  # store results in container
+  container_pec[[i]] <- pec_
+}
+
+# some summary stats
+lapply(container_pec,crps)
+
+# plot
+lapply(container_pec, plot)
+
+
+
+```
+
+
+
