@@ -117,7 +117,52 @@ pcf <- predictSurvProb(fitcforest, newdata = test_df, times = 10 * 365.25)
 ### Plot the predictions
 par(mfrow = c(1, 3))
 lapply(1:3, function(x) {
-	plotPredictSurvProb(fitcox, newdata = test_df[x, ], lty = 1)
+	plotPredictSurvProb(bestfit, newdata = test_df[x, ], lty = 1)
 	plotPredictSurvProb(fitrsf, newdata = test_df[x, ], add = TRUE, lty = 2)
 	plotPredictSurvProb(fitcforest, newdata = test_df[x, ], add = TRUE,lty = 3)
 })
+
+
+### Integrated Brier score
+extends <- function(...) TRUE
+set.seed(13)
+library("doMC")
+registerDoMC()
+
+fitpec <- pec(list("selectcox" = bestfit
+    , "rsf" = fitrsf
+    , "cforest" = fitcforest
+  )
+  , data = cost
+  , formula = Surv(time, status) ~ 1
+  , splitMethod = "Boot632plus"
+  , B = 1000
+  , M = 350
+  , keep.index = TRUE
+  , keep.matrix = TRUE
+)
+
+
+cvFunc <- function(df, ntree, mtry, nfolds = 5){
+  n_folds <- nfolds
+  n_train <- nrow(df)
+  tuneGrid <- expand.grid(folds = 1:n_folds, ntree = ntree, mtry = mtry)
+  cv_errors <- expand.grid(folds = 1:n_folds, ntree = ntree, mtry = mtry, error_rate = 0)
+  folds_i <- sample(rep(1:n_folds, length.out = n_train))
+  for (p in 1:nrow(tuneGrid)){
+    index <- which(folds_i == tuneGrid[["folds"]][p])
+    train <- df[-index, ]
+    test <- df[index, ]
+    fit <- rsf(fitform, data = train, ntree = tuneGrid[["ntree"]][p], mtry = tuneGrid[["mtry"]][p])
+    cv_errors[p, "error_rate"] <- mean(fit$err.rate)
+    print(fit)
+  }
+  return(cv_errors)
+}
+
+tt <- cvFunc(train_df, ntree = c(50, 100), mtry = c(4,10))
+
+t2 <- (tt
+  %>% group_by(ntree, mtry)
+  %>% summarise(mean_error = mean(error_rate))
+)
