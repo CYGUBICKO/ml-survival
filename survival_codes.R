@@ -147,8 +147,8 @@ fitform <- (Surv(time,status) ~ age
 # )
 
 #### ---- CROSS VALIDATION ----
-ntree <- c(50, 100, 150, 200)
-mtry <- 2:10
+ntree <- c(50, 100, 150, 200, 300)
+mtry <- seq(2, 8, 2)
 
 ### In sample cross validation
 cvFunc <- function(df, ntree, mtry, nfolds = 5){
@@ -212,8 +212,13 @@ t3 <- (tt
 #### Compare the two
 dd <- bind_rows(t2, t3)
 
-print(ggplot(dd, aes(x = as.factor(ntree), y = mean_error, group = as.factor(mtry), colour = as.factor(mtry)))
+p1 <- (ggplot(dd, aes(x = as.factor(ntree), y = mean_error, group = as.factor(mtry), colour = as.factor(mtry)))
   + geom_point()
   + geom_line()
   + facet_wrap(~type)
+  + labs(x = "No. of trees", y = "Mean error rate", colour = "No. predictors\n in each split")
+  + theme_bw()
+  + theme(legend.position = "bottom")
 )
+print(p1)
+ggsave("compare_cv_parallel_cv.pdf", p1)
