@@ -19,8 +19,19 @@ Sources += Makefile rmd.mk
 
 ######################################################################
 
+## Time varying covariate data
+timedependData.Rout: timedependData.R
+
 ## pammtools
 timedependPammtools.Rout: timedependPammtools.R
+
+## COX PH
+timedependCoxph.Rout: timedependCoxph.R
+
+## Compare estimates
+timedependTidy.Rout: timedependTidy.R
+timedependEffectsizes.Rout: timedependEffectsizes.R
+timedependPredeffects.Rout: timedependPredeffects.R
 
 ######################################################################
 

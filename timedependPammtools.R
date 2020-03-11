@@ -6,33 +6,36 @@
 
 library(tidyr)
 library(dplyr)
-library(ggplot2)
+library(purrr)
 library(survival)
 library(mgcv)
 library(pammtools)
 
-source("funs/downloadDf.R")
 
-#### ---- 1. Time-dependent covariates
+load("timedependData.rda")
 
-## Uses recidivism dataset
+## Fit models
 
-df_url <- "http://math.unm.edu/~james/Rossi.txt"
-working_df <- downloadDf(filename = "recidivism"
-	, filetype = "csv"
-	, df_url = df_url
-	, sep = ""
+### PAM 
+
+#### Unlagged
+pam_unlagged <- gam(arrest ~ s(stop) + fin + s(age, bs="ps") + race + wexp + mar + paro + s(prio, bs="ps")
+	, data = working_df_unlagged
+	, offset = offset
+	, family = poisson()
 )
 
-head(working_df)
+summary(pam_unlagged)
 
-## The trick is to take the time varying covariates
-## and convert them to long format
-working_df <- (working_df
-	%>% mutate(sid = row_number())
-	%>% gather(calendar.week, employed, emp1:emp52)
+#### Lagged
+pam_lagged <- gam(arrest ~ s(stop) + fin + s(age, bs="ps") + race + wexp + mar + paro + s(prio, bs="ps") + employed.lag1
+	, data = working_df_lagged
+	, offset = offset
+	, family = poisson()
 )
+summary(pam_lagged)
 
-head(working_df)
-
-
+save(file = "timedependPammtools.rda"
+	, pam_unlagged
+	, pam_lagged
+)
