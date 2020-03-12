@@ -32,6 +32,7 @@ timedependCoxph.Rout: timedependCoxph.R
 timedependTidy.Rout: timedependTidy.R
 timedependEffectsizes.Rout: timedependEffectsizes.R
 timedependPredeffects.Rout: timedependPredeffects.R
+timedependSurvcurves.Rout: timedependSurvcurves.R
 
 ######################################################################
 

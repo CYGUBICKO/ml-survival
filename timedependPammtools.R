@@ -16,10 +16,10 @@ load("timedependData.rda")
 
 ## Fit models
 
-### PAM 
+### PAM: Now sure how it translates to using poisson() 
 
 #### Unlagged
-pam_unlagged <- gam(arrest ~ s(stop) + fin + s(age, bs="ps") + race + wexp + mar + paro + s(prio, bs="ps")
+pam_unlagged <- gam(arrest ~ s(stop) + fin + s(age, bs="ps") + race + wexp + mar + paro + s(prio, bs="ps") + employed
 	, data = working_df_unlagged
 	, offset = offset
 	, family = poisson()

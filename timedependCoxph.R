@@ -11,7 +11,7 @@ load("timedependData.rda")
 ## Fit Cox PH
 
 ### Cox-PH
-cox_unlagged <- coxph(Surv(start, stop, arrest) ~ fin + pspline(age) + race + wexp + mar + paro + pspline(prio)
+cox_unlagged <- coxph(Surv(start, stop, arrest) ~ fin + pspline(age) + race + wexp + mar + paro + pspline(prio) + employed
 	, data = working_df_unlagged
 )
 
