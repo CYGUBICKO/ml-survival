@@ -28,6 +28,9 @@ timedependPammtools.Rout: timedependPammtools.R
 ## COX PH
 timedependCoxph.Rout: timedependCoxph.R
 
+## Cox glmnet
+timedependGlmnet.Rout: timedependGlmnet.R
+
 ## Compare estimates
 timedependTidy.Rout: timedependTidy.R
 timedependEffectsizes.Rout: timedependEffectsizes.R
